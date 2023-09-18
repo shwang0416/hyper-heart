@@ -1,0 +1,21 @@
+{
+	"name": "hyper-heart",
+	"version": "01.0.2",
+	"license": "MIT",
+	"keywords": [
+		"hyper",
+		"hyper.app",
+		"hyper-plugin",
+		"heart"
+	],
+	"description": "Hyper-extension with a spiral heart breeze based on cursor movement",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/shwang0416/hyper-heart.git"
+	},
+	"dependencies": {
+		"color": "0.11.3",
+		"convert-css-color-name-to-hex": "0.1.1",
+		"lodash.throttle": "4.1.1"
+	}
+}
