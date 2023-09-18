@@ -1,10 +1,5 @@
 const throttle = require('lodash.throttle')
-const Color = require('color')
-const nameToHex = require('convert-css-color-name-to-hex')
-const toHex = (str) => Color(nameToHex(str)).hexString()
-const values = require('lodash.values')
 
-console.log('hyper power plugin console~~~~')
 // Constants for the particle simulation.
 const PALE_PINK = [255, 168, 213]
 const BLUE = [66, 135, 245]
@@ -14,13 +9,7 @@ const VIOLET = [177, 135, 255]
 const COLORS = [PALE_PINK, BLUE, GREEN, YELLOW, VIOLET]
 
 const MAX_PARTICLES = 500
-const PARTICLE_NUM_RANGE = () => 5 + Math.round(Math.random() * 5)
-const PARTICLE_GRAVITY = 0.075
-const PARTICLE_ALPHA_FADEOUT = 0.99
-const PARTICLE_VELOCITY_RANGE = {
-	x: [-1, 1],
-	y: [-3.5, -1.5],
-}
+const PARTICLE_ALPHA_FADEOUT = 0.97
 const PARTICLE_ALPHA_MIN_THRESHOLD = 0.1
 
 // Our extension's custom redux middleware. Here we can intercept redux actions and respond to them.
@@ -100,7 +89,6 @@ exports.getTermProps = passProps
 // - https://github.com/itszero/rage-power/blob/master/index.jsx
 exports.decorateTerm = (Term, { React, notify }) => {
 	// Define and return our higher order component.
-	console.log('exports.decorateTerm ')
 	return class extends React.Component {
 		constructor(props, context) {
 			super(props, context)
@@ -110,9 +98,6 @@ exports.decorateTerm = (Term, { React, notify }) => {
 			this._resizeCanvas = this._resizeCanvas.bind(this)
 			this._onDecorated = this._onDecorated.bind(this)
 			this._onCursorMove = this._onCursorMove.bind(this)
-			this._shake = throttle(this._shake.bind(this), 100, {
-				trailing: false,
-			})
 			this._spawnParticles = throttle(
 				this._spawnParticles.bind(this),
 				25,
@@ -127,6 +112,29 @@ exports.decorateTerm = (Term, { React, notify }) => {
 				'0<<vv>>0',
 				'00<vv>00',
 				'000vv000',
+			]
+			this.heartMatrix2 = [
+				'001100001100',
+				'011110011110',
+				'111111111111',
+				'011111111110',
+				'001111111100',
+				'000111111100',
+				'000011111000',
+				'000001110000',
+				'000000100000',
+			]
+			this.heartMatrix3 = [
+				'0000110000110000',
+				'0011111001111100',
+				'1111111111111111',
+				'1111111111111111',
+				'0111111111111110',
+				'0001111111111100',
+				'0000011111110000',
+				'0000001111100000',
+				'0000000111000000',
+				'0000000010000000',
 			]
 			this._heartSpiralParticles = []
 			// this.blinkMatrix1 = [
@@ -181,19 +189,27 @@ exports.decorateTerm = (Term, { React, notify }) => {
 				)
 
 			this._heartSpiralParticles.forEach((particle) => {
-				particle.radius += 0.3 // 조절 가능한 값입니다.
-				particle.angle += 0.01 // 조절 가능한 값입니다.
+				particle.radius += 0.4 // 조절 가능한 값입니다.
+				particle.angle += 0.1 // 조절 가능한 값입니다.
 				particle.alpha *= PARTICLE_ALPHA_FADEOUT
-
-				this._canvasContext.fillStyle = `rgba(${particle.color.join(
-					','
-				)}, ${particle.alpha})`
 
 				if (particle.alpha > PARTICLE_ALPHA_MIN_THRESHOLD) {
 					// 하트 하나 그리기
-					for (let i = 0; i < this.heartMatrix.length; i++) {
-						for (let j = 0; j < this.heartMatrix[i].length; j++) {
-							const arrow = this.heartMatrix[i][j]
+
+					this._canvasContext.fillStyle = `rgba(${particle.color.join(
+						','
+					)}, ${particle.alpha})`
+
+					const matrix =
+						particle.size === 0
+							? this.heartMatrix
+							: particle.size === 1
+							? this.heartMatrix2
+							: this.heartMatrix3
+
+					for (let i = 0; i < matrix.length; i++) {
+						for (let j = 0; j < matrix[i].length; j++) {
+							const arrow = matrix[i][j]
 							if (arrow !== '0') {
 								this._canvasContext.fillRect(
 									j +
@@ -207,38 +223,12 @@ exports.decorateTerm = (Term, { React, notify }) => {
 									1,
 									1
 								)
-
-								// this._canvasContext.fillRect(
-								// 	j * particle.k * particle.k + particle.x,
-								// 	i * particle.k * particle.k + particle.y,
-								// 	2 * particle.k,
-								// 	2 + particle.k
-								// )
 							}
 						}
 					}
 				}
 			})
 
-			// this._particles.forEach((particle) => {
-			// 	particle.velocity.y += PARTICLE_GRAVITY
-			// 	particle.x += particle.velocity.x
-			// 	particle.y += particle.velocity.y
-			// 	particle.alpha *= PARTICLE_ALPHA_FADEOUT
-			// 	if (particle.alpha > PARTICLE_ALPHA_MIN_THRESHOLD) {
-			// 		this._canvasContext.fillStyle = `rgba(100, 255, 75, 0.8)`
-			// 		// 					this._canvasContext.fillStyle = `rgba(${particle.color.join(
-			// 		// 	','
-			// 		// )}, ${particle.alpha})`
-			// 		this._canvasContext.fillRect(100, 100, 3, 3)
-			// 		// this._canvasContext.fillRect(
-			// 		// 	Math.round(particle.x - 1),
-			// 		// 	Math.round(particle.y - 1),
-			// 		// 	3,
-			// 		// 	3
-			// 		// )
-			// 	}
-			// })
 			this._heartSpiralParticles = this._heartSpiralParticles
 				.slice(
 					Math.max(
@@ -257,104 +247,59 @@ exports.decorateTerm = (Term, { React, notify }) => {
 			}
 			this.props.needsRedraw = this._heartSpiralParticles.length === 0
 		}
-
+		_generateRandomNumber() {
+			const randomNumber = Math.random()
+			if (randomNumber < 0.25) {
+				return 1
+			} else if (randomNumber > 0.9) {
+				return 2
+			} else {
+				return 0
+			}
+		}
 		// Pushes `PARTICLE_NUM_RANGE` new particles into the simulation.
 		_spawnParticles(x, y) {
-			// const length = this._heartSpiralParticles.length
-			// const colors = this.props.wowMode
-			// 	? values(this.props.colors).map(toHex)
-			// 	: [toHex(this.props.cursorColor)]
-			// const numParticles = PARTICLE_NUM_RANGE()
-			// for (let i = 0; i < numParticles; i++) {
-			// 	const colorCode = colors[i % colors.length]
-			// 	const r = parseInt(colorCode.slice(1, 3), 16)
-			// 	const g = parseInt(colorCode.slice(3, 5), 16)
-			// 	const b = parseInt(colorCode.slice(5, 7), 16)
-			// 	const color = [r, g, b]
-			// 	this._particles.push(this._createParticle(x, y, color))
-			// }
+			const length = this._heartSpiralParticles.length
 
-			const randomIndex = Math.floor(Math.random() * COLORS.length)
-
+			const randomColorIndex = Math.floor(Math.random() * COLORS.length)
+			const size = this._generateRandomNumber()
 			this._heartSpiralParticles.push(
-				this._createSpiralParticle(x, y, COLORS[randomIndex])
+				this._createSpiralParticle(x, y, size, COLORS[randomColorIndex])
 			)
 
-			// if (length === 0) {
-			window.requestAnimationFrame(this._drawFrame)
-			// }
+			// 왜 this._heartSpiralParticles.length === 0 이면 다시 그릴까?
+			if (length === 0) {
+				window.requestAnimationFrame(this._drawFrame)
+			}
 		}
 
 		// Returns a particle of a specified color
 		// at some random offset from the input coordinates.
-
-		_createSpiralParticle(x, y, color) {
+		_createSpiralParticle(x, y, size, color) {
 			return {
 				x,
 				y,
+				size,
 				alpha: 1,
 				color,
-				radius: 10,
-				angle: Math.PI / 4,
+				radius: 30,
+				angle: Math.PI,
 			}
 		}
-
-		_createParticle(x, y, color) {
-			return {
-				x,
-				y: y,
-				alpha: 1,
-				color,
-				// hyperpower는 각자가 떨어지는 속도가 랜덤이라 파티클생성시 고유의 속도가 필요하지만, 여기서는 일단 고려 하지않음
-				velocity: {
-					x:
-						PARTICLE_VELOCITY_RANGE.x[0] +
-						Math.random() *
-							(PARTICLE_VELOCITY_RANGE.x[1] -
-								PARTICLE_VELOCITY_RANGE.x[0]),
-					y:
-						PARTICLE_VELOCITY_RANGE.y[0] +
-						Math.random() *
-							(PARTICLE_VELOCITY_RANGE.y[1] -
-								PARTICLE_VELOCITY_RANGE.y[0]),
-				},
-			}
-		}
-
-		// 'Shakes' the screen by applying a temporary translation
-		// to the terminal container.
-		_shake() {
-			// TODO: Maybe we should do this check in `_onCursorMove`?
-			if (!this.props.wowMode) return
-
-			const intensity = 1 + 2 * Math.random()
-			const x = intensity * (Math.random() > 0.5 ? -1 : 1)
-			const y = intensity * (Math.random() > 0.5 ? -1 : 1)
-			this._div.style.transform = `translate3d(${x}px, ${y}px, 0)`
-			setTimeout(() => {
-				if (this._div) this._div.style.transform = ''
-			}, 75)
-		}
-
 		_onCursorMove(cursorFrame) {
 			if (this.props.onCursorMove) this.props.onCursorMove(cursorFrame)
 
-			const { x, y, width, height, col, row } = cursorFrame
+			const { x, y } = cursorFrame
 			// const origin = this._div.getBoundingClientRect()
-			// const intensity = 1 + 2 * Math.random()
-			// const x = intensity * (Math.random() > 0.5 ? -1 : 1)
-			// const y = intensity * (Math.random() > 0.5 ? -1 : 1)
 
 			requestAnimationFrame(() => {
 				this._spawnParticles(x + 20, y + 50)
-				// this._spawnParticles(col + 100, row + 100)
 			})
 		}
 
 		// Called when the props change, here we'll check if wow mode has gone
 		// on -> off or off -> on and notify the user accordingly.
 		componentWillReceiveProps(next) {
-			console.log('componentWillReceiveProps')
 			if (next.wowMode && !this.props.wowMode) {
 				notify('WOW such on')
 			} else if (!next.wowMode && this.props.wowMode) {
@@ -363,7 +308,6 @@ exports.decorateTerm = (Term, { React, notify }) => {
 		}
 
 		render() {
-			console.log('render')
 			// Return the default Term component with our custom onTerminal closure
 			// setting up and managing the particle effects.
 			return React.createElement(
@@ -376,7 +320,6 @@ exports.decorateTerm = (Term, { React, notify }) => {
 		}
 
 		componentWillUnmount() {
-			console.log('componentWillUnmount')
 			document.body.removeChild(this._canvas)
 		}
 	}
