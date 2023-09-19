@@ -1,6 +1,6 @@
 {
 	"name": "hyper-heart",
-	"version": "01.0.2",
+	"version": "1.0.2",
 	"license": "MIT",
 	"keywords": [
 		"hyper",
@@ -17,5 +17,14 @@
 		"color": "0.11.3",
 		"convert-css-color-name-to-hex": "0.1.1",
 		"lodash.throttle": "4.1.1"
-	}
+	},
+	"bugs": {
+		"url": "https://github.com/shwang0416/hyper-heart/issues"
+	},
+	"homepage": "https://github.com/shwang0416/hyper-heart#readme",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "shwang0416"
 }
